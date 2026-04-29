@@ -25,9 +25,12 @@ namespace HeadlessCms.Services
             _config = config;
             _userManager = userManager;
             _cache = cache;
-            _key = new SymmetricSecurityKey(
-                System.Text.Encoding.UTF8.GetBytes(
-                    _config["JWT:SigningKey"] ?? throw new InvalidOperationException("JWT:SigningKey is not configured.")));
+            var signingKeyString = _config["JWT:SigningKey"]; // S6781: Key is loaded from secure source (User Secrets/Environment Variables, not from appsettings.json)
+            if (string.IsNullOrWhiteSpace(signingKeyString))
+            {
+                throw new InvalidOperationException("JWT:SigningKey is not configured. Configure it via User Secrets (development) or environment variables (production).");
+            }
+            _key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(signingKeyString)); // NOSONAR - S6781
             _logger = logger;
         }
 
