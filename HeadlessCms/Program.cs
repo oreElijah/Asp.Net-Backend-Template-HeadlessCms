@@ -249,4 +249,4 @@ if (app.Environment.IsDevelopment())
     app.UseHangfireDashboard();
     // app.MapOpenApi();
 }
-app.Run();
+await app.RunAsync();
