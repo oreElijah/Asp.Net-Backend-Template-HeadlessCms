@@ -40,8 +40,8 @@ namespace HeadlessCms.Services
         {
             var apiKey = _configuration["BREVO_API_KEY"];
             var fromEmail = _configuration["Email:From"];
-            var fromName = _configuration["Email:FromName"] ?? "Project Management API";
-            var baseUrl = _configuration["App:BaseUrl"] ?? "https://localhost:5135";
+            var fromName = _configuration["Email:FromName"] ?? "RandomGuyy Team";
+            var baseUrl = _configuration["App:BaseUrl"];
 
             if (string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(fromEmail))
             {
@@ -53,18 +53,18 @@ namespace HeadlessCms.Services
             var html = await File.ReadAllTextAsync(templatePath);
             html = html.Replace("{{name}}", firstName);
             
-            var verifyLink = $"{baseUrl}/api/account/v1/verify_email?" +
+            var verifyLink = $"{baseUrl}/verify-email?" +
                     $"email={HttpUtility.UrlEncode(email)}&" +
                     $"token={HttpUtility.UrlEncode(verify_token)}";
 
             html = html.Replace("{{verification_link}}", verifyLink);
 
-            var payload = new
+            var payload = new Dictionary<string, object>
             {
-                sender = new { name = fromName, email = fromEmail },
-                to = new[] { new { email, name = firstName } },
-                subject = "Verify Your Email",
-                htmlContent = html
+                ["sender"] = new Dictionary<string, string> { ["name"] = fromName, ["email"] = fromEmail },
+                ["to"] = new[] { new Dictionary<string, string> { ["email"] = email, ["name"] = firstName } },
+                ["subject"] = "Verify Your Email",
+                ["htmlContent"] = html
             };
 
             try

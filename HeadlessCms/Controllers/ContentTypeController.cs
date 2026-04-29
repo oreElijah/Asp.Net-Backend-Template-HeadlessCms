@@ -7,7 +7,7 @@ using HeadlessCms.Models;
 
 namespace HeadlessCms.Controllers
 {
-    [Route("api/{version:apiVersion}/")]  
+    [Route("api/v{version:apiVersion}/")]  
     [ApiController]
 
     public class ContentTypeController : ControllerBase
@@ -23,7 +23,6 @@ namespace HeadlessCms.Controllers
 
         [ApiVersion("1.0")]
         [HttpGet("content-types")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllContentType()
         {
             var contentTypes = await _ctService.GetContentTypes();
@@ -36,7 +35,6 @@ namespace HeadlessCms.Controllers
 
         [ApiVersion("1.0")]
         [HttpGet("content-types/{id}")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetContentTypeById(int id)
         {
             var contentType = await _ctService.GetUniqueContentType(id);
@@ -72,7 +70,6 @@ namespace HeadlessCms.Controllers
 
         [ApiVersion("1.0")]
         [HttpGet("fields")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllFields()
         {
             var fields = await _fService.GetFields();

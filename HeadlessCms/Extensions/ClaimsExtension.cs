@@ -25,8 +25,7 @@ namespace HeadlessCms.Extensions
 
         public static string GetJti(this ClaimsPrincipal user)
         {
-            var jti = user.FindFirst(JwtRegisteredClaimNames.Jti)?.Value
-            ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var jti = user.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
 
             if (string.IsNullOrWhiteSpace(jti))
             {
@@ -34,6 +33,18 @@ namespace HeadlessCms.Extensions
             }
 
             return jti;
+        }
+
+        public static string GetUserId(this ClaimsPrincipal user)
+        {
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("UserId claim is missing from token.");
+            }
+
+            return userId;
         }
 
         public static string GetEmail(this ClaimsPrincipal user)

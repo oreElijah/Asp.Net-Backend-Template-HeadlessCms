@@ -40,12 +40,12 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-builder.Services.AddAuthorization(options =>
-{
-    options.FallbackPolicy = new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .Build();
-});
+builder.Services.AddAuthorization(
+
+    //options.FallbackPolicy = new AuthorizationPolicyBuilder()
+    //    .RequireAuthenticatedUser()
+    //    .Build();
+);
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -113,6 +113,14 @@ builder.Services.AddAuthentication(options =>
 
     options.Events = new JwtBearerEvents
     {
+        OnMessageReceived = context =>
+        {
+            if (context.HttpContext.Request.Method == "OPTIONS")
+            {
+                context.NoResult();
+            }
+            return Task.CompletedTask;
+        },
         OnTokenValidated = async context =>
         {
             var jti = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
@@ -138,19 +146,44 @@ builder.Services.AddScoped<IContentValueService, ContentValueService>();
 builder.Services.AddScoped<IContentTypeService, ContentTypeService>();
 builder.Services.AddScoped<IFieldRepository, FieldRepository>();
 builder.Services.AddScoped<IFieldService, FieldService>();
-
-builder.Services.AddRateLimiter(options =>
+builder.Services.AddCors(options =>
 {
-    options.AddFixedWindowLimiter("fixed", opt =>
-    {
-        opt.PermitLimit = 5; // max requests
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-        opt.QueueLimit = 2;
-    });
+    options.AddPolicy("AllowFrontend",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:5173") // Your Vite dev server URL
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
 });
 
+//builder.Services.AddRateLimiter(options =>
+//{
+//    options.AddFixedWindowLimiter("fixed", opt =>
+//    {
+//        opt.PermitLimit = 5; // max requests
+//        opt.Window = TimeSpan.FromMinutes(1);
+//        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+//        opt.QueueLimit = 2;
+//    });
+//});
+
 var app = builder.Build();
+app.UseRouting();
+
+app.UseCors("AllowFrontend");
+
+app.UseMiddleware<GlobalExceptionHandler>();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
@@ -205,6 +238,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+
+
+app.UseSerilogRequestLogging();
+app.MapControllers().RequireCors("AllowFrontend");
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -212,17 +249,4 @@ if (app.Environment.IsDevelopment())
     app.UseHangfireDashboard();
     // app.MapOpenApi();
 }
-
-app.UseMiddleware<GlobalExceptionHandler>();
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
-app.UseRateLimiter();
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.UseSerilogRequestLogging();
-app.MapControllers().RequireRateLimiting("fixed");
-
 app.Run();

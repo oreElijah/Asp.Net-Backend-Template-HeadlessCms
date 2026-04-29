@@ -51,9 +51,9 @@ namespace HeadlessCms.Repositories
             return contentValue.ToContentValueResponseDto();
         }
 
-        public async Task<List<ContentValueResponseDto>> CreateContentValue(int ContentTypeId, ContentValueRequestDto cDto)
+        public async Task<List<ContentValueResponseDto>> CreateContentValue(int ContentTypeId, ContentValueRequestDto cDto, string userId)
         {
-            var contentEntry = await _ceRepo.AddContentEntry(ContentTypeId);
+            var contentEntry = await _ceRepo.AddContentEntry(ContentTypeId, userId);
 
             var contentType = await _context.ContentType
                 .Include(ct => ct.Fields)
@@ -86,6 +86,61 @@ namespace HeadlessCms.Repositories
             await _context.SaveChangesAsync();
 
             return await GetAllContentValue(contentEntry.Id);
+        }
+
+        public async Task<List<ContentValueResponseDto>> UpdateContentValue(int ContentTypeId, ContentValueRequestDto cDto, string userId)
+        {
+            var contentValues = await _context.contentValue
+                .Where(cv => cv.ContentEntry.ContentTypeId == ContentTypeId)
+                .Include(cv => cv.Field)
+                .Include(cv => cv.ContentEntry)
+                .ToListAsync();
+
+            if (contentValues == null || !contentValues.Any())
+            {
+                throw new NotFoundException("No content values found for the specified content entry.");
+            }
+
+            var contentEntryModel = contentValues.First().ContentEntry;
+            if (contentEntryModel.AppUserId != userId)
+            {
+                throw new UnauthorizedAccessException("You are not allowed to update this content.");
+            }
+
+            var contentEntry = await _ceRepo.GetContentEntry(contentValues.First().ContentEntryId);
+            foreach (var contentValue in contentValues)
+            {
+                if (cDto.Data.ContainsKey(contentValue.Field.Name))
+                {
+                    var value = cDto.Data[contentValue.Field.Name];
+                    
+                    await ValidateFieldType(contentValue.Field.Type, value);
+                    contentValue.Value = value;
+                }
+            }
+            await _context.SaveChangesAsync();
+            return await GetAllContentValue(contentEntry.Id);
+        }
+
+        public async Task DeleteContentValue(int ContentEntryId, string userId)
+        {
+            var contentValues = await _context.contentValue
+                .Where(cv => cv.ContentEntryId == ContentEntryId)
+                .Include(cv => cv.ContentEntry)
+                .ToListAsync();
+
+            if (contentValues == null || !contentValues.Any())
+            {
+                throw new NotFoundException("No content values found for the specified content entry.");
+            }
+
+            if (contentValues.First().ContentEntry.AppUserId != userId)
+            {
+                throw new UnauthorizedAccessException("You are not allowed to delete this content.");
+            }
+
+            _context.contentValue.RemoveRange(contentValues);
+            await _context.SaveChangesAsync();
         }
 
         public async Task ValidateFieldType(FieldType type, string value)

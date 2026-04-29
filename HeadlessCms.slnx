@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="HeadlessCms/HeadlessCms.csproj" />
+  <Project Path="TestProject1/HeadlessCmsTest.csproj" Id="ff92fa10-0ba1-4fd2-ba80-39a1b499ea8a" />
 </Solution>

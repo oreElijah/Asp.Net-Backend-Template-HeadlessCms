@@ -17,7 +17,7 @@ namespace HeadlessCms.Repositories
             _context = context;
         }
 
-        public async Task<ContentEntryDto> AddContentEntry(int ContentTypeId)
+        public async Task<ContentEntryDto> AddContentEntry(int ContentTypeId, string appUserId)
         {
             var contentType = await _context.ContentType
                 .Include(ct => ct.Fields)
@@ -30,7 +30,8 @@ namespace HeadlessCms.Repositories
 
             var Entry = new ContentEntry
             {
-                ContentTypeId = ContentTypeId
+                ContentTypeId = ContentTypeId,
+                AppUserId = appUserId
             };
 
             await _context.ContentEntry.AddAsync(Entry);

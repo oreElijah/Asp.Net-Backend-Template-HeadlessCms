@@ -16,7 +16,8 @@ using Hangfire;
 namespace HeadlessCms.Controllers
 {
     [ApiController]
-    [Route("api/[controller]/v{version:apiVersion}/")]
+    [Route("api/v{version:apiVersion}/[controller]/")]
+
     public class AccountController : ControllerBase
     {
         private readonly UserManager<AppUser> _userManager;
@@ -77,7 +78,6 @@ namespace HeadlessCms.Controllers
         }
 
         [ApiVersion("1.0")]
-        [EnableRateLimiting("fixed")]
         [HttpPost("login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginDto)
@@ -98,6 +98,12 @@ namespace HeadlessCms.Controllers
                 {
                     return Unauthorized("Invalid Email or username");
                 }
+
+                if (!await _userManager.IsEmailConfirmedAsync(user))
+                {
+                    return Unauthorized("Please verify your email before logging in.");
+                }
+
                 var passwordValid = await _userManager.CheckPasswordAsync(user, loginDto.Password);
                 if (!passwordValid)
                 {
@@ -123,6 +129,10 @@ namespace HeadlessCms.Controllers
             {
                 return BadRequest("Email and token are required.");
             }
+
+            // ASP.NET Core sometimes decodes '+' as a space (' ') in query parameters.
+            // Identity tokens often include '+' characters, so we map them back here.
+            token = token.Replace(" ", "+");
 
             try
             {

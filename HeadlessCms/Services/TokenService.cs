@@ -37,7 +37,8 @@ namespace HeadlessCms.Services
             {
                 new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
                 new Claim(JwtRegisteredClaimNames.Name, user.UserName ?? string.Empty),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Id)
             };
 
             var roles = await _userManager.GetRolesAsync(user);

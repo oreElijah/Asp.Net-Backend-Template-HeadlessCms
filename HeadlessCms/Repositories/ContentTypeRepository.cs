@@ -67,11 +67,17 @@ namespace HeadlessCms.Repositories
         public async Task DeleteContentType(int id)
         {
             var contentType = await _context.ContentType.FindAsync(id);
+            var relatedContentValues = await _context.contentValue.Where(cv => cv.ContentEntry.ContentTypeId == id).ToListAsync();
+            var relatedContentTypeFields = await _context.Field.Where(ctf => ctf.ContentTypeId == id).ToListAsync();
+            var relatedContentEntries = await _context.ContentEntry.Where(ce => ce.ContentTypeId == id).ToListAsync();
             if (contentType == null)
             {
                 throw new NotFoundException($"Content type with id {id} not found.");
             }
             _context.ContentType.Remove(contentType);
+            _context.contentValue.RemoveRange(relatedContentValues);
+            _context.Field.RemoveRange(relatedContentTypeFields);
+            _context.ContentEntry.RemoveRange(relatedContentEntries);
             await _context.SaveChangesAsync();
         }
     }
