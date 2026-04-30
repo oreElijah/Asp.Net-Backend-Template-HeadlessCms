@@ -20,7 +20,6 @@ using Serilog;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -42,9 +41,6 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 
 builder.Services.AddAuthorization(
 
-    //options.FallbackPolicy = new AuthorizationPolicyBuilder()
-    //    .RequireAuthenticatedUser()
-    //    .Build();
 );
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -151,22 +147,12 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.WithOrigins("http://localhost:5173") // Your Vite dev server URL
+            policy.WithOrigins("http://localhost:5173") 
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         });
 });
 
-//builder.Services.AddRateLimiter(options =>
-//{
-//    options.AddFixedWindowLimiter("fixed", opt =>
-//    {
-//        opt.PermitLimit = 5; // max requests
-//        opt.Window = TimeSpan.FromMinutes(1);
-//        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-//        opt.QueueLimit = 2;
-//    });
-//});
 
 var app = builder.Build();
 app.UseRouting();
@@ -189,8 +175,6 @@ using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-    // var roles = new[] { "Admin", "User" };
-
 
     if (!await roleManager.RoleExistsAsync("Admin"))
     {
@@ -237,8 +221,6 @@ using (var scope = app.Services.CreateScope())
 
 }
 
-// Configure the HTTP request pipeline.
-
 
 app.UseSerilogRequestLogging();
 app.MapControllers().RequireCors("AllowFrontend");
@@ -247,6 +229,5 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
     app.UseHangfireDashboard();
-    // app.MapOpenApi();
 }
 await app.RunAsync();

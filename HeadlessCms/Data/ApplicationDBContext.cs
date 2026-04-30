@@ -19,9 +19,9 @@ namespace HeadlessCms.Data
         public DbSet<ContentValue> contentValue { get; set; }
         public DbSet<Field> Field { get; set; }
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder Builder)
         {
-            base.OnModelCreating(modelBuilder);
+            base.OnModelCreating(Builder);
 
             List<IdentityRole> roles = new List<IdentityRole>
             {
@@ -41,9 +41,9 @@ namespace HeadlessCms.Data
                     }
             };
 
-            modelBuilder.Entity<IdentityRole>().HasData(roles);
+            Builder.Entity<IdentityRole>().HasData(roles);
 
-            modelBuilder.Entity<ContentValue>()
+            Builder.Entity<ContentValue>()
                 .HasOne(cv => cv.Field)
                 .WithMany()
                 .HasForeignKey(cv => cv.FieldId)
