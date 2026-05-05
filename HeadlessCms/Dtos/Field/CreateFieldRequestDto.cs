@@ -1,4 +1,5 @@
-﻿using HeadlessCms.Models;
+﻿using System.ComponentModel.DataAnnotations;
+using HeadlessCms.Models;
 
 namespace HeadlessCms.Dtos.Field
 {

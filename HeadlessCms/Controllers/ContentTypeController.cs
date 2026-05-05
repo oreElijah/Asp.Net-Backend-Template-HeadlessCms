@@ -14,11 +14,23 @@ namespace HeadlessCms.Controllers
     {
         private readonly IContentTypeService _ctService;
         private readonly IFieldService _fService;
+        private readonly ICmsFacade _cmsFacade;
 
-        public ContentTypeController(IContentTypeService ctService, IFieldService fService)
+        public ContentTypeController(IContentTypeService ctService, IFieldService fService, ICmsFacade cmsFacade)
         {
             _ctService = ctService;
             _fService = fService;
+            _cmsFacade = cmsFacade;
+        }
+
+        [ApiVersion("1.0")]
+        [HttpPost("content-types/with-fields")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CreateContentTypesWithFields([FromBody] CreateContentTypeWithFieldsDto dto)
+        {
+            await _cmsFacade.CreateContentTypeWithFields(dto);
+            return Ok("Content type with fields created successfully.");
+
         }
 
         [ApiVersion("1.0")]

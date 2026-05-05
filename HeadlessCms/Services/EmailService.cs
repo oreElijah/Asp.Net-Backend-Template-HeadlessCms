@@ -37,7 +37,7 @@ namespace HeadlessCms.Services
 
         public async Task SendVerifyUserEmail(string firstName, string email, string verify_token)
         {
-            private const string BrevoUrl = _configuration["BrevoUrl"];
+            var BrevoUrl = _configuration["BrevoUrl"];
             var apiKey = _configuration["BREVO_API_KEY"];
             var fromEmail = _configuration["Email:From"];
             var fromName = _configuration["Email:FromName"] ?? "RandomGuyy Team";

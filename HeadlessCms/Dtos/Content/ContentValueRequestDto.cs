@@ -1,4 +1,6 @@
-﻿namespace HeadlessCms.Dtos.Content
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace HeadlessCms.Dtos.Content
 {
     public class ContentValueRequestDto
     {

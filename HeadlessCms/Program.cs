@@ -141,6 +141,7 @@ builder.Services.AddScoped<IContentValueRepository, ContentValueRepository>();
 builder.Services.AddScoped<IContentValueService, ContentValueService>();
 builder.Services.AddScoped<IContentTypeService, ContentTypeService>();
 builder.Services.AddScoped<IFieldRepository, FieldRepository>();
+builder.Services.AddScoped<ICmsFacade, CmsFacade>();
 builder.Services.AddScoped<IFieldService, FieldService>();
 builder.Services.AddCors(options =>
 {
