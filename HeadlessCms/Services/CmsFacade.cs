@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace HeadlessCms.Services
 {
+    //Facade Design Pattern to simplify the interface for creating content types with fields
     public class CmsFacade : ICmsFacade
     {
         private readonly IContentTypeRepository _ctRepo;

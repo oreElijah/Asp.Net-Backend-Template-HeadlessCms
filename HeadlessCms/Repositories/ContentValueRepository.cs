@@ -4,6 +4,7 @@ using HeadlessCms.Exceptions;
 using HeadlessCms.Interfaces;
 using HeadlessCms.Mappers;
 using HeadlessCms.Models;
+using HeadlessCms.Services;
 using Humanizer;
 using Microsoft.EntityFrameworkCore;
 
@@ -145,27 +146,9 @@ namespace HeadlessCms.Repositories
 
         public async Task ValidateFieldType(FieldType type, string value)
         {
-            switch (type)
-            {
-                case FieldType.Integer:
-                    if (!int.TryParse(value, out _))
-                        throw new Exception("Invalid integer value");
-                    break;
+            var handler = FieldHandlerFactory.Create(type);
 
-                case FieldType.Date:
-                    if (!DateTime.TryParse(value, out _))
-                        throw new Exception("Invalid date value");
-                    break;
-
-                case FieldType.Boolean:
-                    if (!bool.TryParse(value, out _))
-                        throw new Exception("Invalid boolean value");
-                    break;
-
-                case FieldType.String:
-                default:
-                    break;
-            }
+            handler.Parse(value);
         }
 
 
