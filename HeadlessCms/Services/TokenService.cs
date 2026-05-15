@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using HeadlessCms.Interfaces;
 using HeadlessCms.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Tokens;
 
@@ -101,12 +102,88 @@ namespace HeadlessCms.Services
             return finalToken;
         }
 
-        public async Task Logout(string jti){
+        public async Task LoginWithGoogleAsync(ClaimsPrincipal claimsPrincipal, HttpContext context)
+        {
+            var email = claimsPrincipal.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                _logger.LogWarning("Google login failed: email claim is missing.");
+                throw new InvalidOperationException("Google login failed: email claim is missing.");
+            }
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                _logger.LogInformation("No existing user found for Google login with email {Email}. Creating new user.", email);
+                user = new AppUser
+                {
+                    UserName = email,
+                    Email = email,
+                    FirstName = claimsPrincipal.FindFirstValue(ClaimTypes.GivenName) ?? string.Empty,
+                    LastName = claimsPrincipal.FindFirstValue(ClaimTypes.Surname) ?? string.Empty,
+                    EmailConfirmed = true
+                };
+
+                var result = await _userManager.CreateAsync(user);
+
+                if (!result.Succeeded)
+                {
+                    _logger.LogError("Failed to create user for Google login with email {Email}. Errors: {Errors}", email, string.Join(", ", result.Errors.Select(e => e.Description)));
+                    throw new InvalidOperationException($"Failed to create user for Google login: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                }
+
+                var roleResult = await _userManager.AddToRoleAsync(user, "User");
+                if (!roleResult.Succeeded)
+                {
+                    _logger.LogError("Failed to assign 'User' role to new user created for Google login with email {Email}. Errors: {Errors}", email, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+                    throw new InvalidOperationException($"Failed to assign 'User' role for Google login: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+                }
+
+                _logger.LogInformation("New user created successfully for Google login with email {Email}", email);
+                
+            }
+
+            var info = new UserLoginInfo("Google",
+            claimsPrincipal.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
+             "Google");
+
+            var loginResult = await _userManager.AddLoginAsync(user, info);
+             
+             if(!loginResult.Succeeded)
+             {
+                _logger.LogError("Failed to add Google login info for user with email {Email}. Errors: {Errors}", email, string.Join(", ", loginResult.Errors.Select(e => e.Description)));
+                throw new InvalidOperationException($"Failed to add Google login info: {string.Join(", ", loginResult.Errors.Select(e => e.Description))}");
+             }
+
+            var jwtToken = await CreateToken(user);
+            var refreshToken = await CreateRefreshToken(user);
+
+            context.Response.Cookies.Append("ACCESS_TOKEN", jwtToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = context.Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddHours(1)
+            });
+
+            context.Response.Cookies.Append("REFRESH_TOKEN", refreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = context.Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(7)
+            });
+
+            _logger.LogInformation("Google login tokens issued successfully for user {Email}", email);
+        }
+
+        public async Task Logout(string jti)
+        {
             var options = new DistributedCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7)
             };
-            
+
             await _cache.SetStringAsync(jti, "revoked", options);
             _logger.LogInformation("User logged out successfully with JTI: {JTI}", jti);
         }

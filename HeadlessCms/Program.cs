@@ -16,6 +16,9 @@ using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Serilog;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,6 +95,28 @@ builder.Services.AddAuthentication(options =>
     options.DefaultSignInScheme =
     options.DefaultScheme =
     options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddCookie()
+.AddGoogle(options =>
+{
+    var clientId = builder.Configuration["Authentication:Google:ClientId"];
+
+    if (clientId == null)
+    {
+        throw new ArgumentNullException("Google ClientId is not configured.");
+    }
+
+    var clientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+
+    if (clientSecret == null)
+    {
+        throw new ArgumentNullException("Google ClientSecret is not configured.");
+    }
+
+    options.ClientId = clientId;
+    options.ClientSecret = clientSecret;
+    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
 }).AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters

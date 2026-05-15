@@ -12,6 +12,8 @@ using HeadlessCms.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Hangfire;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 
 namespace HeadlessCms.Controllers
 {
@@ -29,6 +31,17 @@ namespace HeadlessCms.Controllers
             _userManager = userManager;
             _tokenservice = tokenservice;
             _emailService = emailService;
+        }
+
+        private void WriteAuthTokenCookie(string name, string value, TimeSpan lifetime)
+        {
+            Response.Cookies.Append(name, value, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.Add(lifetime)
+            });
         }
 
         [ApiVersion("1.0")]
@@ -110,6 +123,10 @@ namespace HeadlessCms.Controllers
                     return Unauthorized("Invalid password");
                 }
                 var token = await _tokenservice.CreateToken(user);
+                var refreshToken = await _tokenservice.CreateRefreshToken(user);
+
+                WriteAuthTokenCookie("ACCESS_TOKEN", token, TimeSpan.FromHours(1));
+                WriteAuthTokenCookie("REFRESH_TOKEN", refreshToken, TimeSpan.FromDays(7));
 
                 var responsedto = loginDto.ToLoginResponseDto(user, token);
 
@@ -177,6 +194,34 @@ namespace HeadlessCms.Controllers
             }
 
             return Ok("User deleted successfully");
+        }
+
+        [ApiVersion("1.0")]
+        [HttpGet("login/google")]
+        [AllowAnonymous]
+        public IActionResult GoogleLogin([FromQuery] string returnUrl, LinkGenerator linkGenerator,
+            SignInManager<AppUser> signInManager)
+        {
+            var redirectUrl = linkGenerator.GetUriByAction(HttpContext, action: nameof(GoogleLoginCallback), controller: "Account", values: new { returnUrl });
+            var properties = signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
+            return Challenge(properties, "Google");
+        }
+
+        [ApiVersion("1.0")]
+        [HttpGet("login/google/callback")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GoogleLoginCallback([FromQuery] string returnUrl)
+        {
+            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
+
+            if (!result.Succeeded)
+            {
+                return Unauthorized();
+            }
+
+            await _tokenservice.LoginWithGoogleAsync(result.Principal, HttpContext);
+
+            return Redirect(returnUrl);
         }
     }
 }
