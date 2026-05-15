@@ -25,12 +25,14 @@ namespace HeadlessCms.Controllers
         private readonly UserManager<AppUser> _userManager;
         private readonly ITokenService _tokenservice;
         private readonly IEmailService _emailService;
+        private readonly IWebHostEnvironment _env;
 
-        public AccountController(UserManager<AppUser> userManager, ITokenService tokenservice, IEmailService emailService)
+        public AccountController(UserManager<AppUser> userManager, ITokenService tokenservice, IEmailService emailService, IWebHostEnvironment env)
         {
             _userManager = userManager;
             _tokenservice = tokenservice;
             _emailService = emailService;
+            _env = env;
         }
 
         private void WriteAuthTokenCookie(string name, string value, TimeSpan lifetime)
@@ -38,7 +40,7 @@ namespace HeadlessCms.Controllers
             Response.Cookies.Append(name, value, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = Request.IsHttps,
+                Secure = _env.IsProduction() ? true : Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.Add(lifetime)
             });
@@ -221,7 +223,14 @@ namespace HeadlessCms.Controllers
 
             await _tokenservice.LoginWithGoogleAsync(result.Principal, HttpContext);
 
-            return Redirect(returnUrl);
+            // Prevent open-redirect vulnerabilities: only redirect to local URLs supplied by the user.
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            // Fallback to a safe default when returnUrl is missing or not local.
+            return Redirect("/");
         }
     }
 }

@@ -8,6 +8,8 @@ using HeadlessCms.Interfaces;
 using HeadlessCms.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Tokens;
 
@@ -20,12 +22,14 @@ namespace HeadlessCms.Services
         private readonly SymmetricSecurityKey _key;
         private readonly IDistributedCache _cache;
         private readonly ILogger<TokenService> _logger;
+        private readonly IWebHostEnvironment _env;
 
-        public TokenService(IConfiguration config, UserManager<AppUser> userManager, IDistributedCache cache, ILogger<TokenService> logger)
+        public TokenService(IConfiguration config, UserManager<AppUser> userManager, IDistributedCache cache, ILogger<TokenService> logger, IWebHostEnvironment env)
         {
             _config = config;
             _userManager = userManager;
             _cache = cache;
+            _env = env;
             var signingKeyString = _config["JWT:SigningKey"]; // S6781: Key is loaded from secure source (User Secrets/Environment Variables, not from appsettings.json)
             if (string.IsNullOrWhiteSpace(signingKeyString))
             {
@@ -161,7 +165,7 @@ namespace HeadlessCms.Services
             context.Response.Cookies.Append("ACCESS_TOKEN", jwtToken, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = context.Request.IsHttps,
+                Secure = _env.IsProduction() ? true : context.Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddHours(1)
             });
@@ -169,7 +173,7 @@ namespace HeadlessCms.Services
             context.Response.Cookies.Append("REFRESH_TOKEN", refreshToken, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = context.Request.IsHttps,
+                Secure = _env.IsProduction() ? true : context.Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddDays(7)
             });
